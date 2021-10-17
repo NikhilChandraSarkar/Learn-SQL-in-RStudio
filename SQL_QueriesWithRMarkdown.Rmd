@@ -1,0 +1,170 @@
+
+---
+title: "Basic SQL Queries Using R Markdown in RStudio"
+author: "Written by Nikhil Chandra Sarkar, PhD"
+date: "`r Sys.Date()`"
+
+lang: en
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Who for this Learning Suitable
+
+This learning post is going to simplify the use-case of basic SQL queries in RStudio using R Markdown from my drafted book on **Machine Learning Tools**. Do you want to learn more on machine learning tools to perform data analytics? If yes, then this post might be useful for you. I'll publish an online version of the book once its ready to go by the end of this year, 2021.
+
+## Required Machine Learning Tools {-}
+
+I assume that you have installed following machine learning tools on your computer to **reproduce this entire work**.
+
+(1) Microsoft SQL Server 2015 or above,
+(2) Microsoft SQL Server Management Studio,
+(3) R and RStudio.
+
+## Retriving Data from a Database Server
+
+The process of retrieving data from a database server is known as querying. Queries allow a database user to understand the story that the data is telling. This post is going to focus on retrieving information from a sample database. This sample database was developed by **Data Simulation Research Lab** using Microsoft SQL Server 2019.
+
+## Sample Database
+
+In order to explore and learn basic SQL queries in Microsoft SQL Server, first we need to have a database. Data Simulation Research lab (DSRLab) developed their own datawarehouse using Microsoft SQL Server 2019 which is publicly open in a GitHub repository. I am going to use this sample database here to explore basic SQL queries. You can find the download link to the database from the GitHub repository at URL **https://github.com/NikhilChandraSarkar/DSRLab-Data-Warehouse**. On this page, you find the section for the DSRLab full database backups and the file called **DSRLabDW_Full.bak**. Let's go ahead and click on that link and download the file to your computer. Now you need to move the downloaded file into the Microsoft SQL Server **backup folder** on your computer and rename it as **DSRLabDW**. Then you can login to your Microsoft SQL Server using a Microsoft SQL Server Management Studio tool to restore the sample database on the server.
+
+
+## Connect Mircosoft SQL Server with RStudio
+Now I need to connect my Microsoft SQL Server instance with my RStudio. The following machine learning code in RStudio using R Marckdown shows how to connect to a local Microsoft SQL Server instance:
+
+```{r}
+library(odbc)
+con <- dbConnect(odbc(), 
+                 Driver = "SQL Server", 
+                 Server = "localhost\\SQLEXPRESS",
+                 Database = "DSRLabDW",
+                 Trusted_Connection = "True")
+```
+
+## Write SQL queries in R Markdown
+
+To enable SQL quries in R Markdown for this learning, I need to use **{sql, connection =con}** in each chunk instead of **{r}**.Though SQL language is case and white space **insensitive**, here I use the standard convention to write all query command keywords in uppercase letters and finish the statement with a semicolon.
+
+Let's get started writing a **SELECT** statement to retrieve data from the **'DSRLabDW'** database. Here I use a **SELECT** statement to select a column named **'Crash_Severity'** from a table named **'crash_location'** from the **'DSRLabDW'** database. And they display values from every record in that column.
+
+```{sql, connection = con}
+SELECT  Crash_Severity
+FROM dbo.crash_location;
+```
+
+
+Let's continue working with **'crash_location'** table to select multiple columns using following SQL query:
+
+```{sql, connection = con}
+SELECT  Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location;
+```
+
+
+Let's continue working with **'crash_location'** table to select all columns using * symbol after **SELECT** keyword.
+
+```{sql, connection = con}
+SELECT *
+FROM dbo.crash_location;
+```
+
+
+Use **TOP** function to limit the records from a column
+
+```{sql, connection = con}
+SELECT TOP(8) Crash_Severity
+FROM dbo.crash_location;
+```
+Use **TOP** function to limit the records from multiple columns
+
+```{sql, connection = con}
+SELECT TOP (5) Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location;
+```
+
+Let's use a **WHERE** clause to filter the data from the same table. Here I specify the condition after **WHERE** keyword that I want to filter by. The filtering condition in the **WHERE** clause is called a **predicate**. It usually involve a **comparison operator** such as this equal sign.
+
+```{sql, connection = con}
+SELECT Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+WHERE Crash_Nature = 'Head-on';
+```
+
+Add **OR** with **WHERE** clause
+
+```{sql, connection = con}
+SELECT  Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+WHERE Crash_Nature = 'Head-on'
+OR Crash_Nature = 'Hit object';
+```
+
+Add **AND** with **WHERE** clause
+
+```{sql, connection = con}
+SELECT  Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+WHERE Crash_Nature = 'Head-on'
+AND Crash_Year =2001;
+```
+
+Use **WHERE** Clause with **IN** function
+
+```{sql, connection = con}
+SELECT  Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+WHERE Crash_Nature IN ('Head-on', 'Sideswipe');
+```
+
+
+Use **AS** Clause to rename a column from a table.
+
+```{sql, connection = con}
+SELECT TOP(5) Crash_Nature AS 'Crash Type'
+FROM dbo.crash_location;
+```
+
+Use **AS** Clause to rename multiple columns from a table.
+
+```{sql, connection = con}
+SELECT  TOP(5) Crash_Severity AS 'Severity of Crash', Crash_Nature AS 'Crash Type'
+FROM dbo.crash_location;
+```
+Let's use **ORDER BY** clause that we can add to **SELECT** statement to sort records into an order such as **DESC** for descending order and **ASC** for ascending order.
+
+```{sql, connection = con}
+SELECT  TOP (10) Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+ORDER BY Crash_Year ASC;
+```
+
+```{sql, connection = con}
+SELECT  TOP (10) Crash_Year, Crash_Severity, Crash_Nature
+FROM dbo.crash_location
+ORDER BY Crash_Year DESC;
+```
+
+To find a text that matches with a pattern, we need to use the **LIKE** operator in **WHERE** clause. Here is an example to filter the **Crash_Severity** name started by **H**. The **LIKE** operator and **%** symbol (that is called a wildcard) create a text pattern and the query returns the records from the column that match the pattern.
+
+```{sql, connection = con}
+SELECT Crash_Severity
+FROM dbo.crash_location
+WHERE Crash_Severity LIKE 'H%';
+```
+Let's use **GROUP BY** statement to group rows that have the same values.
+
+```{sql, connection = con}
+SELECT Crash_Year,Crash_Nature, COUNT(*) AS CountOfCrashNature
+FROM dbo.crash_location
+GROUP BY Crash_Year, Crash_Nature;
+
+```
+
+
+I'll continue this learning in another posts from here to advance level.
+
+
